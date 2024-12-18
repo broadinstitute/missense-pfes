@@ -12,7 +12,7 @@ This Python script generates heatmaps and analyses mutation scores for protein f
 
 ### Libraries:
 
-* Python 3.x
+* `python 3`
 * `pandas`
 * `numpy`
 * `matplotlib`
@@ -47,13 +47,13 @@ This script accepts the following arguments:
 ### Example Command:
 
 ```bash
-python script.py -gene TP53 -mutation R175H
+python script.py -gene BID -mutation H42K
 ```
 
 Or with a mutations file:
 
 ```bash
-python script.py -uniprot P04637 -mutations mutations.txt
+python script.py -uniprot P55957 -mutations mutations.txt
 ```
 
 ---
