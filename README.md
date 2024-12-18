@@ -47,13 +47,13 @@ This script accepts the following arguments:
 ### Example Command:
 
 ```bash
-python script.py -gene BID -mutation H42K
+python get_pfes_score.py -gene BID -mutation H42K
 ```
 
 Or with a mutations file:
 
 ```bash
-python script.py -uniprot P55957 -mutations mutations.txt
+python get_pfes_score.py -uniprot P55957 -mutations mutations.txt
 ```
 
 ---
