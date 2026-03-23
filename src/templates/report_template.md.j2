@@ -1,0 +1,45 @@
+# Variant Summary Report: {{ gene }}:{{ variant }}
+
+This report summarizes the protein feature enrichment score (PFES) for the variant {{ variant }} ({{ ref_aa_full }} to {{ alt_aa_full }} at position {{ var_pos }}) in {{ gene }}, a member of the **{{ protein_class }}** protein family.
+
+---
+
+## 1. PFES Summary
+
+| | |
+|---|---|
+| **Overall PFES** | {{ "%.3f" | format(scores.PFES.score) }} |
+| **PFES Category** | {{ scores.PFES.partition }}{% if scores.PFES.p_enriched is not none %} (*p* = {{ "%.2e" | format(scores.PFES.p_enriched) }}){% endif %} |
+{% for attr in attr_order -%}
+| **PFES_{{ attr }}** | {% if scores[attr].score == 0 and scores[attr].partition == 'PF-Neutral' %}— (no significant features){% else %}{{ "%.3f" | format(scores[attr].score) }} ({{ attr }}-{{ scores[attr].partition | replace('PF-', '') }}{% if scores[attr].p_enriched is not none %}, *p* = {{ "%.2e" | format(scores[attr].p_enriched) }}{% endif %}){% endif %} |
+{% endfor %}
+
+{{ narrative }}
+
+---
+
+## 2. Feature Attribution
+
+| Attribute | PFES | Feature | OR | q-value | Interpretation |
+|---|---|---|---|---|---|
+{% for attr in attr_order -%}
+{% set attr_feats = features[attr] -%}
+{% if attr_feats | length > 0 -%}
+{% for feat in attr_feats -%}
+{% if loop.first %}| {{ attr }} | {{ "%.3f" | format(scores[attr].score) }} | {{ feat.label }} | {{ feat.OR | format_or }} | {{ "%.2e" | format(feat.q_value) }} | {{ feat.interpretation }} |
+{% else %}| | | {{ feat.label }} | {{ feat.OR | format_or }} | {{ "%.2e" | format(feat.q_value) }} | {{ feat.interpretation }} |
+{% endif -%}
+{% endfor -%}
+{% else -%}
+| {{ attr }} | — | — | — | — | No {{ attr | lower }} annotations identified at {{ ref_aa }}{{ var_pos }} |
+{% endif -%}
+{% endfor %}
+
+---
+
+## 3. PFES Landscape
+
+![PFES Landscape]({{ landscape_png }})
+
+The full mutational landscape for {{ gene }} is available in the accompanying interactive figure:
+[{{ gene }}_{{ variant }}_landscape.html]({{ gene }}_{{ variant }}_landscape.html)
