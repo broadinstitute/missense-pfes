@@ -19,7 +19,7 @@ This report summarizes the protein feature enrichment score (PFES) for the varia
 ---
 
 ## 2. Feature Attribution
-Features only with significant enrichment (q-value < 0.05) are included in the table below.
+
 | Attribute | PFES | Feature | OR | q-value | Interpretation |
 |---|---|---|---|---|---|
 {% for attr in attr_order -%}
@@ -31,9 +31,11 @@ Features only with significant enrichment (q-value < 0.05) are included in the t
 {% endif -%}
 {% endfor -%}
 {% else -%}
-| {{ attr }} | — | — | — | — | No {{ attr | lower }} annotations identified at {{ ref_aa }}{{ var_pos }} |
+| {{ attr }} | — | — | — | — | No {% if attr == 'PPI' %}protein-protein interaction{% else %}{{ attr | lower }} annotation {% endif %} identified at {{ ref_aa }}{{ var_pos }} |
 {% endif -%}
 {% endfor %}
+
+Features only with significant enrichment (q-value < 0.01) are included in the table above.
 
 ---
 

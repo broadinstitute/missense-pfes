@@ -75,9 +75,9 @@ MAX_ASA = {
 }
 
 SS9_LABELS    = ['B','E','G','H','I','P','C','S','T']
-RSA_BINS      = [0, 0.05, 0.25, 0.50, 0.75, 1.01]
+RSA_BINS      = [0, 0.05, 0.25, 0.50, 0.75, np.inf]
 RSA_LABELS    = ['Core','Buried','Medium-buried','Medium-exposed','Exposed']
-PLDDT_BINS    = [0, 50, 70, 90, 100.01]
+PLDDT_BINS    = [0, 50, 70, 90, np.inf]
 PLDDT_LABELS  = ['Very low','Low','High','Very high']
 PCHEM_CLASSES = ['Aliphatic','Aromatic','Polar/Neutral','Positively-Charged','Negatively-Charged','Special']
 

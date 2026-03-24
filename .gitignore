@@ -1,1 +1,3 @@
 src-not-git
+src/__pycache__/
+
