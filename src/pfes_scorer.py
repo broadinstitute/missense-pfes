@@ -394,6 +394,7 @@ def _process_one_protein(args):
         pf[float_cols] = pf[float_cols].astype(object)
         pf.fillna('-', inplace=True)
         pf.rename(columns=lambda c: c.replace(' (UniProt)', ''), inplace=True)
+
         encoded = annotate_protein_features(pf)
         scores  = _score_protein_variants(encoded, variants_df, log_ors)
         return pd.DataFrame(scores, index=variants_df.index)
@@ -414,26 +415,30 @@ def run_pfes_batch(input_tsv, output_tsv, n_workers):
 
     enrichment_df, panther_map = _load_resources()
 
-    # Group by (Gene, UniProt) — one task per unique protein
-    groups   = [(gene, uniprot, grp, enrichment_df, panther_map)
-                for (gene, uniprot), grp in df.groupby(['Gene','UniProt'], sort=False)]
+    # Group by UniProt only — gene is just passed for g2papi but scoring is UniProt-based.
+    # Using the first gene name encountered for each UniProt.
+    uniprot_to_gene = df.groupby('UniProt')['Gene'].first().to_dict()
+    groups = [
+        (uniprot_to_gene[uniprot], uniprot, grp, enrichment_df, panther_map)
+        for uniprot, grp in df.groupby('UniProt', sort=False)
+    ]
     n_proteins = len(groups)
     print(f"\nScoring {len(df):,} variants across {n_proteins} proteins "
           f"using {n_workers} workers...\n")
 
-    score_parts = {}
+    # Collect results keyed by the original row indices of each group
+    score_parts = []
     with Pool(processes=n_workers) as pool:
-        for (gene, uniprot, grp, _, _), result in zip(
+        for (_, _, grp, _, _), result in zip(
             groups,
             tqdm(pool.imap(_process_one_protein, groups), total=n_proteins,
                  desc="Proteins", unit="protein")
         ):
-            score_parts[uniprot] = result
+            score_parts.append(result)
 
-    # Reassemble in original row order
-    scores_df = pd.concat([score_parts[uniprot]
-                           for _, uniprot, _, _, _ in groups])
-    out = pd.concat([df, scores_df.loc[df.index]], axis=1)
+    # Reassemble in original row order using index alignment
+    scores_df = pd.concat(score_parts).reindex(df.index)
+    out = pd.concat([df[['Gene','UniProt','ResID','RefAA','AltAA']], scores_df], axis=1)
     out.to_csv(output_tsv, sep='\t', index=False)
     print(f"\nDone. {len(out):,} variants saved to: {output_tsv}")
 
