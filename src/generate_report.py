@@ -137,7 +137,7 @@ def _feature_interpretation(feat, raw_df, ref_aa, alt_aa, var_pos, OR):
     if feat.startswith('Domain:'):
         return f'{ref_aa}{var_pos} is annotated as {feat.replace("Domain:", "").lower()} (see UniProtKB entry for details)'
     if feat.startswith('Modification:'):
-        if feat in ['Modification:Lipidation', 'Modification:Glycosylation', 'Modification:Cross-link', 'Modification:Modified residue']:
+        if feat in ['Modification:Lipidation', 'Modification:Glycosylation', 'Modification:Crosslinks', 'Modification:Modified residue']:
             return f'{ref_aa}{var_pos} is annotated as {feat.replace("Modification:", "").lower()} site (see UniProtKB entry for details)'
         else:
             return f'{ref_aa}{var_pos} is annotated as {feat.replace("Modification:", "").lower()} site (see PhosphoSitePlus entry for details)'
@@ -208,15 +208,15 @@ def _build_narrative(scores, gene, variant, ref_aa, alt_aa, var_pos):
                 if dominant_pool else None)
 
     if partition == 'PF-Neutral':
-        return (f"The variant {variant} in {gene} is classified as **PF-Neutral**, "
+        return (f"The variant {variant} in *{gene}* is classified as **PF-Neutral**, "
                 f"indicating that its protein feature profile is statistically consistent "
                 f"with both pathogenic and control variant distributions. "
                 f"No single attribute shows significant enrichment in either direction.")
 
     direction = ('enriched among known pathogenic variants' if partition == 'PF-Enriched'
-                 else 'depleted of features associated with pathogenic variants')
+                 else 'depleted among known pathogenic variants')
 
-    s1 = (f"The variant {variant} in {gene} is classified as **{partition}** ({p_str}), "
+    s1 = (f"The variant {variant} in *{gene}* is classified as **{partition}** ({p_str}), "
           f"indicating that its protein feature profile is {direction}.")
     s2 = f"This classification is primarily driven by **{dominant.lower()}** features." if dominant else ''
     s3 = ''
@@ -231,7 +231,7 @@ def _build_narrative(scores, gene, variant, ref_aa, alt_aa, var_pos):
 # ── Main render function ───────────────────────────────────────────────────────
 
 def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
-                    interp_df, sig_df, raw_df, fig, out_dir, template_path='.',
+                    interp_df, sig_df, insig_df, raw_df, fig, out_dir, template_path='.',
                     landscape_png_name=None):
     os.makedirs(out_dir, exist_ok=True)
 

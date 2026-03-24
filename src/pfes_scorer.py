@@ -86,12 +86,12 @@ DOMAIN_FEATURES   = [
     'Region/Disordered','Region/Interaction','Region/Others',
     'Motif','Coiled coil','Compositional bias','Repeat','Domain',
     'Topological domain','Transmembrane','Intramembrane',
-    'Signal','Transit peptide','Propeptide','Peptide','Chain',
+    'Signal peptide','Transit peptide','Propeptide','Peptide','Chain',
 ]
 PTM_FEATURES = [
     'Acetylation','Methylation','Phosphorylation','SUMOylation',
     'Ubiquitination','O-GalNAc/GlcNAc','Lipidation','Glycosylation',
-    'Cross-link','Modified residue',
+    'Crosslinks','Modified residue',
 ]
 
 FEATURE_COLS = (
