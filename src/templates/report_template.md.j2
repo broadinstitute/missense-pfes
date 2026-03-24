@@ -6,12 +6,12 @@ This report summarizes the protein feature enrichment score (PFES) for the varia
 
 ## 1. PFES Summary
 
-| | |
+| Metric | Interpretation |
 |---|---|
-| **Overall PFES** | {{ "%.3f" | format(scores.PFES.score) }} |
-| **PFES Category** | {{ scores.PFES.partition }}{% if scores.PFES.p_enriched is not none %} (*p* = {{ "%.2e" | format(scores.PFES.p_enriched) }}){% endif %} |
+| **PFES** | {{ "%.3f" | format(scores.PFES.score) }} |
+| **PFES Partitioning** | {{ scores.PFES.partition }}{% if scores.PFES.p_enriched is not none %} (*p* = {{ "%.2e" | format(scores.PFES.p_enriched) }}){% endif %} |
 {% for attr in attr_order -%}
-| **PFES_{{ attr }}** | {% if scores[attr].score == 0 and scores[attr].partition == 'PF-Neutral' %}— (no significant features){% else %}{{ "%.3f" | format(scores[attr].score) }} ({{ attr }}-{{ scores[attr].partition | replace('PF-', '') }}{% if scores[attr].p_enriched is not none %}, *p* = {{ "%.2e" | format(scores[attr].p_enriched) }}{% endif %}){% endif %} |
+| **PFES<sub>{{ attr }}</sub>** | {% if scores[attr].score == 0 and scores[attr].partition == 'PF-Neutral' %}— (no significant features){% else %}{{ "%.3f" | format(scores[attr].score) }} ({{ attr }}-{{ scores[attr].partition | replace('PF-', '') }}{% if scores[attr].p_enriched is not none %}, *p* = {{ "%.2e" | format(scores[attr].p_enriched) }}{% endif %}){% endif %} |
 {% endfor %}
 
 {{ narrative }}
@@ -19,7 +19,7 @@ This report summarizes the protein feature enrichment score (PFES) for the varia
 ---
 
 ## 2. Feature Attribution
-
+Features only with significant enrichment (q-value < 0.05) are included in the table below.
 | Attribute | PFES | Feature | OR | q-value | Interpretation |
 |---|---|---|---|---|---|
 {% for attr in attr_order -%}
