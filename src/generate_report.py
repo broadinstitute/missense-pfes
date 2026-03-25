@@ -153,8 +153,8 @@ def _build_scores(interp_df):
         scores[key] = {
             'score':      row['score'],
             'partition':  row['partition'],
-            'p_enriched': None if pd.isna(row['p_enriched']) else row['p_enriched'],
-            'p_depleted': None if pd.isna(row['p_depleted']) else row['p_depleted'],
+            'p_case': None if pd.isna(row['p_case']) else row['p_case'],
+            'p_control': None if pd.isna(row['p_control']) else row['p_control'],
         }
     return scores
 
@@ -187,45 +187,57 @@ def _build_features(sig_df, raw_df, ref_aa, alt_aa, var_pos):
 
 # ── Build narrative paragraph ──────────────────────────────────────────────────
 
-def _build_narrative(scores, gene, variant, ref_aa, alt_aa, var_pos):
+def _build_narrative_global(scores, gene, variant):#, ref_aa, alt_aa, var_pos):
     overall   = scores['PFES']
     partition = overall['partition']
-    p_val     = overall['p_enriched'] if partition == 'PF-Enriched' else overall.get('p_depleted')
-    p_str     = f"*p* = {p_val:.2e}" if p_val is not None else ''
-
-    attr_scores  = {a: scores[a]['score'] for a in ATTR_ORDER if a in scores}
-    enriched     = [a for a in ATTR_ORDER if scores.get(a, {}).get('partition') == 'PF-Enriched']
-    depleted     = [a for a in ATTR_ORDER if scores.get(a, {}).get('partition') == 'PF-Depleted']
-
-    if partition == 'PF-Enriched':
-        dominant_pool, opposing = enriched, depleted
-    elif partition == 'PF-Depleted':
-        dominant_pool, opposing = depleted, enriched
-    else:
-        dominant_pool, opposing = [], []
-
-    dominant = (max(dominant_pool, key=lambda a: abs(attr_scores.get(a, 0)))
-                if dominant_pool else None)
-
+    p_str = f"*p*<sub>control</sub> < 0.05" if partition == 'PF-Enriched' else f"*p*<sub>case</sub> < 0.05" if partition == 'PF-Depleted' else ''
+    
     if partition == 'PF-Neutral':
         return (f"The variant {variant} in *{gene}* is classified as **PF-Neutral**, "
                 f"indicating that its protein feature profile is statistically consistent "
-                f"with both pathogenic and control variant distributions. "
-                f"No single attribute shows significant enrichment in either direction.")
-
+                f"with both pathogenic and control variant distributions. ") 
+        
     direction = ('enriched among known pathogenic variants' if partition == 'PF-Enriched'
                  else 'depleted among known pathogenic variants')
 
     s1 = (f"The variant {variant} in *{gene}* is classified as **{partition}** ({p_str}), "
           f"indicating that its protein feature profile is {direction}.")
-    s2 = f"This classification is primarily driven by **{dominant.lower()}** features." if dominant else ''
-    s3 = ''
-    if opposing:
-        opp_str = ' and '.join(f'**{o.lower()}**' for o in opposing)
-        s3 = (f"A modest opposing contribution from {opp_str} features "
-              f"is present but does not change the overall classification.")
 
-    return ' '.join(s for s in [s1, s2, s3] if s)
+    return ' '.join(s for s in [s1] if s)
+
+def _build_narrative_attribute(scores): #, gene, variant):
+    case_sig    = [a for a in ATTR_ORDER if scores.get(a, {}).get('p_control') is not None
+                   and scores[a]['p_control'] < 0.05]
+    control_sig = [a for a in ATTR_ORDER if scores.get(a, {}).get('p_case') is not None
+                   and scores[a]['p_case'] < 0.05]
+
+    if not case_sig and not control_sig:
+        return ("No individual attribute shows a statistically significant signal, "
+                "suggesting the overall score reflects cumulative contributions "
+                "across multiple attributes rather than a single dominant category.")
+
+    parts = []
+    # if case_sig:
+    #     attrs = ', '.join(f'**{a.lower()}**' for a in case_sig)
+    #     parts.append(f"{attrs} {'attributes show' if len(case_sig) > 1 else 'attribute shows'} "
+    #                  f"significant elevation relative to the control distribution.")
+    # if control_sig:
+    #     attrs = ', '.join(f'**{a.lower()}**' for a in control_sig)
+    #     parts.append(f"{attrs} {'attributes show' if len(control_sig) > 1 else 'attribute shows'} "
+    #                  f"significant reduction relative to the case distribution.")
+    
+    if case_sig:
+        attrs = ', '.join(f'**{a}**' for a in case_sig)
+        parts.append(f"{attrs} {'attributes show' if len(case_sig) > 1 else 'attribute shows'} "
+                    f"scores significantly higher than expected under the control distribution.")
+    if control_sig:
+        attrs = ', '.join(f'**{a}**' for a in control_sig)
+        parts.append(f"{attrs} {'attributes show' if len(control_sig) > 1 else 'attribute shows'} "
+                    f"scores significantly lower than expected under the case distribution.")
+    
+
+    return ' '.join(parts)
+
 
 
 # ── Main render function ───────────────────────────────────────────────────────
@@ -237,8 +249,9 @@ def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
 
     scores    = _build_scores(interp_df)
     features  = _build_features(sig_df, raw_df,  ref_aa, alt_aa, var_pos)
-    narrative = _build_narrative(scores, gene, variant, ref_aa, alt_aa, var_pos)
-
+    narrative_global = _build_narrative_global(scores, gene, variant)# ref_aa, alt_aa, var_pos)
+    narrative_attribute = _build_narrative_attribute(scores)#, gene, variant, ref_aa, alt_aa, var_pos)
+    
     # Use shared PNG name if provided, otherwise save variant-specific PNG
     png_name = landscape_png_name or f'{gene}_{variant}_landscape.png'
     png_path = os.path.join(out_dir, png_name)
@@ -256,7 +269,7 @@ def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
         'alt_aa_full':   AA_FULLNAME.get(alt_aa, alt_aa),
         'scores':        scores,
         'features':      features,
-        'narrative':     narrative,
+        'narrative':     {'global': narrative_global, 'attributes': narrative_attribute},
         'attr_order':    ATTR_ORDER,
         'landscape_html': f'{gene}_{variant}_landscape.html',
         'landscape_png':  png_name,

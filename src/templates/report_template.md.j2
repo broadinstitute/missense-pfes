@@ -1,41 +1,75 @@
-# Variant Summary Report: *{{ gene }}*:{{ variant }}
+<style>
+th {
+    font-weight: normal;
+    background-color: #f0f0f0;
+    padding: 4px 8px;
+}
+td {
+    padding: 4px 8px;
+}
+</style>
 
-This report summarizes the protein feature enrichment score (PFES) for the variant {{ variant }} ({{ ref_aa_full }} to {{ alt_aa_full }} at position {{ var_pos }}) in *{{ gene }}*, a member of the **{{ protein_class }}** protein family.
+# Protein Feature Enrichment Variant Report - *{{ gene }}*:{{ variant }}
+This report summarizes the **P**rotein **F**eature **E**nrichment **S**core (**PFES**) for the variant {{ variant }} ({{ ref_aa_full }} to {{ alt_aa_full }} at position {{ var_pos }}) in *{{ gene }}*, a member of the **{{ protein_class }}** protein family.
 
----
-
+For detailed methods and interpretation guidelines, please visit [the PFES GitHub repository](https://github.com/broadinstitute/missense-pfes#).
 ## 1. PFES Summary
 
-| Metric | Interpretation |
-|---|---|
-| **PFES** | {{ "%.3f" | format(scores.PFES.score) }} |
-| **PFES Partitioning** | {{ scores.PFES.partition }}{% if scores.PFES.p_enriched is not none %} (*p* = {{ "%.2e" | format(scores.PFES.p_enriched) }}){% endif %} |
+### Global PFES and partitioning
+| | Score | *p*<sub>case</sub><sup>*</sup> | *p*<sub>control</sub><sup>*</sup> | Partitioning</sub><sup>**</sup> |
+|---|---|---|---|---|
+| PFES | {{ "%.3f" | format(scores.PFES.score) }} | {% set p = scores.PFES.p_case %}{% if p < 0.05 %}**{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}**{% else %}{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}{% endif %} | {% set p = scores.PFES.p_control %}{% if p < 0.05 %}**{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}**{% else %}{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}{% endif %} | {{ scores.PFES.partition }} |
+
+{{ narrative.global }}
+
+### PFES decomposition by protein feature attributes
+
+| Attribute | Score | *p*<sub>case</sub><sup>*</sup> | *p*<sub>control</sub><sup>*</sup> |
+|---|---|---|---|
 {% for attr in attr_order -%}
-| **PFES<sub>{{ attr }}</sub>** | {% if scores[attr].score == 0 and scores[attr].partition == 'PF-Neutral' %}— (no significant features){% else %}{{ "%.3f" | format(scores[attr].score) }} ({{ attr }}-{{ scores[attr].partition | replace('PF-', '') }}{% if scores[attr].p_enriched is not none %}, *p* = {{ "%.2e" | format(scores[attr].p_enriched) }}{% endif %}){% endif %} |
+| PFES<sub>{{ attr }}</sub> | {% if scores[attr].score is none or scores[attr].score != scores[attr].score %}N/A (no significant feature){% else %}{{ "%.3f" | format(scores[attr].score) }}{% endif %} | {% if scores[attr].p_case is not none %}{% set p = scores[attr].p_case %}{% if p < 0.05 %}**{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}**{% else %}{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}{% endif %}{% else %}—{% endif %} | {% if scores[attr].p_control is not none %}{% set p = scores[attr].p_control %}{% if p < 0.05 %}**{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}**{% else %}{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}{% endif %}{% else %}—{% endif %} |
 {% endfor %}
 
-{{ narrative }}
+{{ narrative.attributes }}
+
+<sup>\* One-sided p-values derived from KDE-smoothed empirical distributions of PFES for case and control variants, respectively. *p*<sub>case</sub>: probability of observing a PFES lower than the variant's score under the case distribution. *p*<sub>control</sub>: probability of observing a PFES higher than the variant's score under the control distribution. 
+    For individual protein feature attributes, p-values are calculated in the same way but using empirical distributions of each attribute-level sub-score. **Bold** values indicate statistical significance (*p* < 0.05).</sup>
+
+<sup>\** *PF-Enriched*: *p*<sub>control</sub> < 0.05, variant's PFES is significantly higher than expected from the control distribution. 
+    *PF-Depleted*: *p*<sub>case</sub> < 0.05, variant's PFES is significantly lower than expected from the case distribution. 
+    *PF-Neutral*: statistically consistent with both distributions.</sup>
 
 ---
 
-## 2. Feature Attribution
+## 2. Protein Feature (PF) Attribution
 
-| Attribute | PFES | Feature | OR | q-value | Interpretation |
-|---|---|---|---|---|---|
+**PFES** is the sum of log odds ratios (OR) across protein features showing statistically significant enrichment in case versus control variants:
+$$\text{PFES} = \sum_{i \in \text{significant}} \log(\text{OR}_i)$$
+The following table summarizes the significant features contributing to the PFES, along with their enrichment direction, odds ratios, and corrected p-values. **Bold** indicate **statistically significant features** (corrected-p < 0.01).
+
+{% macro sig_cell(value, p) %}{% if p < 0.01 %}**{{ value }}**{% else %}{{ value }}{% endif %}{% endmacro %}
+
+| Attribute | Feature |  OR<sup>***</sup> | Corrected *p*-value<sup>****</sup> | Enrichment |
+|---|---|---|---|---|
 {% for attr in attr_order -%}
 {% set attr_feats = features[attr] -%}
 {% if attr_feats | length > 0 -%}
 {% for feat in attr_feats -%}
-{% if loop.first %}| {{ attr }} | {{ "%.3f" | format(scores[attr].score) }} | {{ feat.label }} | {{ feat.OR | format_or }} | {{ "%.2e" | format(feat.q_value) }} | {{ feat.interpretation }} |
-{% else %}| | | {{ feat.label }} | {{ feat.OR | format_or }} | {{ "%.2e" | format(feat.q_value) }} | {{ feat.interpretation }} |
+{% set p = feat.q_value -%}
+{% if loop.first %}| {{ attr }} | {{ sig_cell(feat.label, p) }}  | {{ sig_cell(feat.OR | format_or, p) }} | {{ sig_cell("%.2e" | format(p), p) }} | {{ sig_cell("Case-enriched" if feat.OR > 1 else "Control-enriched", p) }}|
+{% else %}| | {{ sig_cell(feat.label, p) }} | {{ sig_cell(feat.OR | format_or, p) }} | {{ sig_cell("%.2e" | format(p), p) }} | {{ sig_cell("Case-enriched" if feat.OR > 1 else "Control-enriched", p) }}|
 {% endif -%}
 {% endfor -%}
 {% else -%}
-| {{ attr }} | — | — | — | — | No {% if attr == 'PPI' %}protein-protein interaction{% else %}{{ attr | lower }} annotation {% endif %} identified at {{ ref_aa }}{{ var_pos }} |
+| {{ attr }} | — | — | — | — |
 {% endif -%}
 {% endfor %}
 
-Features only with significant enrichment (q-value < 0.01) are included in the table above.
+
+<sup>\*** Odds ratios (OR) are derived from two-sided Fisher's exact tests comparing the presence of each feature among case versus control variants. OR > 1 indicates enrichment among case variants; OR < 1 indicates enrichment among control variants.</sup>
+
+<sup>\**** p-values from Fisher's exact tests are corrected for multiple testing using the Benjamini-Hochberg (BH) false discovery rate procedure. Features with BH-corrected p < 0.01 are considered statistically significant contributors to PFES.</sup>
+
 
 ---
 
