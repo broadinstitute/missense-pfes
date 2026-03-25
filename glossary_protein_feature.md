@@ -83,7 +83,6 @@ From UniProtKB (https://www.uniprot.org/help/ptm_processing_section):
 * **Glycosylation** – Covalently attached glycan group(s).
 * **Crosslinks** – Residues participating in covalent linkage(s) between proteins.
 * **Modified residue** – Modified residues excluding lipids, glycans and protein crosslinks.
-* ~~**Disulfide bond (UniProtKB)** – Both experimentally determined and predicted disulfide bonds are annotated. it may refer to interchain or intrachain context depending on annotation (practically, it's very likely to be intrachain; > 99% intra, < 1% inter). <span style="color: red;">(*Aug 15th - merged to intra- and inter-molecular disulfide bond*)</span>~~ 
 
 From PhosphositePlus (https://www.phosphosite.org/):
 
