@@ -1,9 +1,8 @@
 # Protein Feature Enrichment Score (PFES)
 
-> **Interpretable Protein Feature Enrichment Analysis for Human Proteome-wide Missense Variant Classification**
+> **Human Proteome-wide Mechanistic Interpretation of Missense Mutations through Structural and Functional Characterization** 
 >
-> Seulki Kwon, Jordan Safer, Sumaiya Iqbal
-> Broad Institute of MIT and Harvard
+> Seulki Kwon, Jordan Safer, Sumaiya Iqbal (Broad Institute of MIT and Harvard) 
 
 ---
 
@@ -11,7 +10,7 @@
 
 Accurately interpreting missense variants remains a central challenge in clinical genetics. Most computational variant effect predictors achieve strong classification performance but function as black boxes, providing pathogenicity probabilities without revealing the protein characteristics that drive them.
 
-**PFES** is an interpretable framework that asks a different question: *which protein characteristics are implicated in a variant's molecular profile, and how does that profile relate to known pathogenic signatures?*
+**P**rotein **F**eature **E**nrichment **S**core (**PFES**) is an variant interpretation framework that asks a different question: *which protein characteristics are implicated in a variant's molecular profile, and how does that profile relate to known pathogenic signatures?*
 
 Rather than optimizing for classification accuracy, PFES quantifies the degree to which a missense variant's protein context resembles known pathogenic or benign variants, and decomposes that signal into six interpretable feature attribute categories. This makes PFES a complementary resource to existing variant effect predictors, adding a transparent mechanistic layer to variant interpretation workflows.
 
