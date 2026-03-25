@@ -8,19 +8,12 @@
 
 ## Overview
 
-Accurately interpreting missense variants remains a central challenge in clinical genetics. Most computational variant effect predictors achieve strong classification performance but function as black boxes, providing pathogenicity probabilities without revealing the protein characteristics that drive them.
-
-**P**rotein **F**eature **E**nrichment **S**core (**PFES**) is an variant interpretation framework that asks a different question: *which protein characteristics are implicated in a variant's molecular profile, and how does that profile relate to known pathogenic signatures?*
-
-Rather than optimizing for classification accuracy, PFES quantifies the degree to which a missense variant's protein context resembles known pathogenic or benign variants, and decomposes that signal into six interpretable feature attribute categories. This makes PFES a complementary resource to existing variant effect predictors, adding a transparent mechanistic layer to variant interpretation workflows.
-
 ---
 
 ## The PFES Framework
 
 ### Core principle
 
-The framework is grounded in the idea that **molecular context determines consequence**: pathogenicity emerges from the intersection of *what* is being changed (physicochemical properties), *where* the change occurs (structural and functional context), and *why* that location matters (protein class-specific constraints).
 
 ### Score computation
 
