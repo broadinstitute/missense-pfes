@@ -276,14 +276,14 @@ def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
     }
 
     env = Environment(loader=FileSystemLoader(template_path))
-    env.filters['format_or'] = lambda v: f'{v:.2f}' if v < 1 else f'{v:.1f}'
+    env.filters['format_or'] = lambda v: f'{v:.2f}' if v < 10 else f'{v:.1f}'
     template = env.get_template('report_template.md.j2')
     md_text  = template.render(**context)
 
     # Save markdown
-    md_path = os.path.join(out_dir, f'{gene}_{variant}_report.md')
-    with open(md_path, 'w') as f:
-        f.write(md_text)
+    # md_path = os.path.join(out_dir, f'{gene}_{variant}_report.md')
+    # with open(md_path, 'w') as f:
+    #     f.write(md_text)
 
     # Convert to HTML
     CSS = """
