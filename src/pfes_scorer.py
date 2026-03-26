@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 import g2papi
 
+g2p_version = '2026_q1'
 
 # ── Amino acid table ───────────────────────────────────────────────────────────
 AA_TABLE = pd.DataFrame([
@@ -288,7 +289,7 @@ def _score_protein_variants(encoded, variants_df, log_ors):
 
     # Score each variant by adding variant-level features on top of base scores
     results = []
-    dist_bins   = [0, 50, 100, 150, np.inf]
+    # dist_bins   = [0, 50, 100, 150, np.inf]
     dist_labels = ['Mild','Moderate','Substantial','Severe']
 
     for _, vrow in variants_df.iterrows():
@@ -334,23 +335,24 @@ def _score_protein_variants(encoded, variants_df, log_ors):
 # ── Remote data loaders ────────────────────────────────────────────────────────
 
 _GITHUB_OR_URL = (
-    'https://raw.githubusercontent.com/broadinstitute/missense-pfes'
-    '/refs/heads/main/results/enrichment_OR_by_protein_class.csv'
+    'https://github.com/broadinstitute/missense-pfes/blob/main/results/enrichment_OR_by_protein_class.csv?raw=true'
+    
 )
 _GCS_META_URL = (
-    'https://storage.googleapis.com/g2p-portal'
-    '/portal_data/2026_q1_data/uniprot_metadata.tsv'
+    f'https://storage.googleapis.com/g2p-portal/portal_data/{g2p_version}_data/uniprot_metadata.tsv'
 )
 
 def _load_resources():
     print("Loading enrichment table...")
     r = requests.get(_GITHUB_OR_URL); r.raise_for_status()
     enrichment_df = pd.read_csv(StringIO(r.text), header=[0, 1], index_col=0)
+    print (f"  Enrichment table loaded from PFES Github: {_GITHUB_OR_URL}")
 
     print("Loading PANTHER protein class map...")
     r = requests.get(_GCS_META_URL); r.raise_for_status()
     meta = pd.read_csv(StringIO(r.text), sep='\t')
     panther_map = meta.set_index('UniprotKB_Entry')['PANTHER_protein_class'].to_dict()
+    print(f"  PANTHER map loaded from G2P GCS (version {g2p_version}): {_GCS_META_URL}")
 
     return enrichment_df, panther_map
 
@@ -375,7 +377,6 @@ def _get_log_ors(protein_class, enrichment_df):
 
 
 # ── Worker function (one protein per call) ────────────────────────────────────
-
 def _process_one_protein(args):
     """
     Fetch, annotate, and score all variants for a single UniProt.
@@ -394,6 +395,10 @@ def _process_one_protein(args):
         pf[float_cols] = pf[float_cols].astype(object)
         pf.fillna('-', inplace=True)
         pf.rename(columns=lambda c: c.replace(' (UniProt)', ''), inplace=True)
+        
+        ## Process column names 
+        pf.rename(columns={'Signal':'Signal peptide'}, inplace=True)
+        pf.rename(columns={'Cross-link':'Crosslinks'}, inplace=True)
 
         encoded = annotate_protein_features(pf)
         scores  = _score_protein_variants(encoded, variants_df, log_ors)
