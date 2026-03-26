@@ -303,7 +303,7 @@ def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
     with open(html_path, 'w') as f:
         f.write(html_full)
 
-    print(f"Report saved:\n  {md_path}\n  {html_path}\n  {png_path}")
+    # print(f"Report saved:\n  {md_path}\n  {html_path}\n  {png_path}")
     return md_text
 
 
