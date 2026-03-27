@@ -1,10 +1,17 @@
 """
 pfes_scorer.py  —  Batch PFES scorer (parallelized by protein)
 Usage:
-    python pfes_scorer.py <input.tsv> <output.tsv> [--workers N]
+    python pfes_scorer.py -i <input.tsv/csv> -o <output.tsv/csv> [--rerun] [--log <path>] [--workers N]
 
-Input TSV columns : Gene, UniProt, ResID, RefAA, AltAA
-Output TSV        : same + PFES, PFES_Physicochemical, PFES_Structure,
+    -i        Input TSV or CSV (columns: Gene, UniProt, ResID, RefAA, AltAA)
+              When --rerun is set, this should be a previous output file with PFES columns.
+    -o        Output TSV or CSV (same columns + PFES scores); format inferred from extension.
+    --rerun   Only process rows where PFES is NaN (fill missing scores in place)
+    --log     Path for error log (default: pfes_errors.log)
+    --workers Number of parallel workers (default: 1)
+
+Output TSV columns: Gene, UniProt, ResID, RefAA, AltAA,
+                    PFES, PFES_Physicochemical, PFES_Structure,
                     PFES_Domain, PFES_Function, PFES_Modification, PFES_PPI
 """
 
@@ -16,6 +23,7 @@ import pandas as pd
 from io import StringIO
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
+from datetime import datetime
 
 import g2papi
 
@@ -116,7 +124,6 @@ ATTR_PREFIXES = {
     'PPI':             ['PPI:'],
 }
 
-# Pre-compute feature-to-attribute mapping for fast lookup
 FEAT_TO_ATTR = {}
 for attr, prefixes in ATTR_PREFIXES.items():
     for feat in FEATURE_COLS + [
@@ -242,67 +249,47 @@ def annotate_protein_features(pf):
 # ── Vectorized scoring for all variants of one protein ────────────────────────
 
 def _score_protein_variants(encoded, variants_df, log_ors):
-    """
-    Score all variants for a single protein at once.
-
-    Parameters
-    ----------
-    encoded     : pd.DataFrame   output of annotate_protein_features()
-    variants_df : pd.DataFrame   subset of input with ResID, RefAA, AltAA
-    log_ors     : dict           {feature -> log(OR)}
-
-    Returns
-    -------
-    list of score dicts in the same order as variants_df rows
-    """
-    # Pre-filter log_ors to features that actually exist in encoded
     base_cols   = [c for c in encoded.columns if c not in ('ResID','RefAA')]
     valid_feats = {f: v for f, v in log_ors.items() if f in base_cols or
                    f.startswith('AAchange:') or f.startswith('Grantham:')}
 
-    # Split into base features (position-level) and variant features (alt_aa-level)
     base_feats    = {f: v for f, v in valid_feats.items()
                      if not f.startswith('AAchange:') and not f.startswith('Grantham:')}
     variant_feats = {f: v for f, v in valid_feats.items()
                      if f.startswith('AAchange:') or f.startswith('Grantham:')}
 
-    # Index encoded by ResID for fast lookup
     encoded_idx = encoded.set_index('ResID')
 
-    # Pre-compute base scores per residue (same regardless of alt_aa)
-    # Result: {res_id -> {attr -> score}}
     base_scores_by_res = {}
     if base_feats:
         feat_list = [f for f in base_feats if f in encoded_idx.columns]
         lor_arr   = np.array([base_feats[f] for f in feat_list])
-        feat_mat  = encoded_idx[feat_list].values.astype(float)   # shape (n_res, n_feats)
+        feat_mat  = encoded_idx[feat_list].values.astype(float)
         attr_mat  = np.zeros((feat_mat.shape[1], len(ATTR_PREFIXES)))
         attrs     = list(ATTR_PREFIXES.keys())
         for j, feat in enumerate(feat_list):
             attr = FEAT_TO_ATTR.get(feat)
             if attr:
                 attr_mat[j, attrs.index(attr)] = 1.0
-        # shape: (n_res, n_attrs)
         contrib = (feat_mat * lor_arr) @ attr_mat
         for i, res_id in enumerate(encoded_idx.index):
             base_scores_by_res[res_id] = dict(zip(attrs, contrib[i]))
 
-    # Score each variant by adding variant-level features on top of base scores
-    results = []
-    # dist_bins   = [0, 50, 100, 150, np.inf]
+    results    = []
+    failed_idx = []  # row indices where ResID was not found
     dist_labels = ['Mild','Moderate','Substantial','Severe']
 
-    for _, vrow in variants_df.iterrows():
+    for idx, vrow in variants_df.iterrows():
         res_id, ref_aa, alt_aa = int(vrow['ResID']), vrow['RefAA'], vrow['AltAA']
         nan_row = {col: np.nan for col in SCORE_COLS}
 
         if res_id not in base_scores_by_res:
             results.append(nan_row)
+            failed_idx.append(idx)
             continue
 
-        scores = dict(base_scores_by_res[res_id])  # copy base scores
+        scores = dict(base_scores_by_res[res_id])
 
-        # Add AAchange score
         ref_cls = AA2PRP.get(ref_aa)
         alt_cls = AA2PRP.get(alt_aa)
         if ref_cls and alt_cls:
@@ -310,7 +297,6 @@ def _score_protein_variants(encoded, variants_df, log_ors):
             if feat in variant_feats:
                 scores['Physicochemical'] = scores.get('Physicochemical', 0.0) + variant_feats[feat]
 
-        # Add Grantham score
         dist = DISTANCE_MATRIX.get(ref_aa, {}).get(alt_aa, np.nan)
         if not np.isnan(dist):
             idx = np.searchsorted([50, 100, 150], dist)
@@ -329,14 +315,13 @@ def _score_protein_variants(encoded, variants_df, log_ors):
             'PFES_PPI':             scores.get('PPI',             0.0),
         })
 
-    return results
+    return results, failed_idx
 
 
 # ── Remote data loaders ────────────────────────────────────────────────────────
 
 _GITHUB_OR_URL = (
     'https://github.com/broadinstitute/missense-pfes/blob/main/results/enrichment_OR_by_protein_class.csv?raw=true'
-    
 )
 _GCS_META_URL = (
     f'https://storage.googleapis.com/g2p-portal/portal_data/{g2p_version}_data/uniprot_metadata.tsv'
@@ -346,15 +331,16 @@ def _load_resources():
     print("Loading enrichment table...")
     r = requests.get(_GITHUB_OR_URL); r.raise_for_status()
     enrichment_df = pd.read_csv(StringIO(r.text), header=[0, 1], index_col=0)
-    print (f"  Enrichment table loaded from PFES Github: {_GITHUB_OR_URL}")
+    print(f"  Enrichment table loaded from PFES Github: {_GITHUB_OR_URL}")
 
     print("Loading PANTHER protein class map...")
     r = requests.get(_GCS_META_URL); r.raise_for_status()
     meta = pd.read_csv(StringIO(r.text), sep='\t')
     panther_map = meta.set_index('UniprotKB_Entry')['PANTHER_protein_class'].to_dict()
+    gene_map = meta.set_index('UniprotKB_Entry').to_dict(orient='index')
     print(f"  PANTHER map loaded from G2P GCS (version {g2p_version}): {_GCS_META_URL}")
 
-    return enrichment_df, panther_map
+    return enrichment_df, panther_map, gene_map
 
 
 def _resolve_protein_class(uniprot, panther_map, enrichment_df):
@@ -377,15 +363,10 @@ def _get_log_ors(protein_class, enrichment_df):
 
 
 # ── Worker function (one protein per call) ────────────────────────────────────
+
 def _process_one_protein(args):
-    """
-    Fetch, annotate, and score all variants for a single UniProt.
-    Called in a subprocess — receives all needed data as arguments
-    since subprocesses don't share memory with the parent.
-    """
     gene, uniprot, variants_df, enrichment_df, panther_map = args
-    nan_df = pd.DataFrame({col: np.nan for col in SCORE_COLS},
-                          index=variants_df.index)
+    nan_df = pd.DataFrame({col: np.nan for col in SCORE_COLS}, index=variants_df.index)
     try:
         protein_class = _resolve_protein_class(uniprot, panther_map, enrichment_df)
         log_ors       = _get_log_ors(protein_class, enrichment_df)
@@ -395,57 +376,130 @@ def _process_one_protein(args):
         pf[float_cols] = pf[float_cols].astype(object)
         pf.fillna('-', inplace=True)
         pf.rename(columns=lambda c: c.replace(' (UniProt)', ''), inplace=True)
-        
-        ## Process column names 
-        pf.rename(columns={'Signal':'Signal peptide'}, inplace=True)
-        pf.rename(columns={'Cross-link':'Crosslinks'}, inplace=True)
+        pf.rename(columns={'Signal': 'Signal peptide', 'Cross-link': 'Crosslinks'}, inplace=True)
 
-        encoded = annotate_protein_features(pf)
-        scores  = _score_protein_variants(encoded, variants_df, log_ors)
-        return pd.DataFrame(scores, index=variants_df.index)
+        encoded  = annotate_protein_features(pf)
+        scores, failed_idx = _score_protein_variants(encoded, variants_df, log_ors)
+        return pd.DataFrame(scores, index=variants_df.index), None, failed_idx
 
     except Exception as e:
-        tqdm.write(f"  WARNING {gene} ({uniprot}): {e}")
-        return nan_df
+        return nan_df, str(e), []
+
+
+# ── Error logger ───────────────────────────────────────────────────────────────
+
+def _write_log(log_path, errors):
+    """
+    errors: list of (gene, uniprot, error_message, failed_variants_df)
+    failed_variants_df is a DataFrame with columns Gene, UniProt, ResID, RefAA, AltAA,
+    or None if the entire protein failed.
+    Appends to log file with a run timestamp header.
+    """
+    with open(log_path, 'a') as f:
+        f.write(f"\n{'='*60}\n")
+        f.write(f"Run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"{'='*60}\n")
+        if not errors:
+            f.write("No errors.\n")
+        else:
+            header = f"{'Gene':<20} {'UniProt':<12} {'ResID':<8} {'RefAA':<6} {'AltAA':<6} Error"
+            f.write(header + '\n')
+            f.write('-' * len(header) + '\n')
+            for gene, uniprot, msg, failed_vars in errors:
+                if failed_vars is None:
+                    # Protein-level failure — no individual variant info
+                    f.write(f"{gene:<20} {uniprot:<12} {'---':<8} {'---':<6} {'---':<6} {msg}\n")
+                else:
+                    for _, vrow in failed_vars.iterrows():
+                        f.write(f"{gene:<20} {uniprot:<12} "
+                                f"{str(vrow['ResID']):<8} {vrow['RefAA']:<6} {vrow['AltAA']:<6} {msg}\n")
+    print(f"Error log written to: {log_path}")
 
 
 # ── Main batch function ────────────────────────────────────────────────────────
 
-def run_pfes_batch(input_tsv, output_tsv, n_workers):
-    df = pd.read_csv(input_tsv, sep='\t')
-    required = {'Gene','UniProt','ResID','RefAA','AltAA'}
+def _get_sep(path):
+    return ',' if str(path).lower().endswith('.csv') else '\t'
+
+def run_pfes_batch(input_tsv, output_tsv, rerun, log_path, n_workers):
+    df = pd.read_csv(input_tsv, sep=_get_sep(input_tsv))
+    required = {'Gene', 'UniProt', 'ResID', 'RefAA', 'AltAA'}
     missing  = required - set(df.columns)
     if missing:
         sys.exit(f"Error: input TSV missing columns: {missing}")
 
-    enrichment_df, panther_map = _load_resources()
+    # Add score columns if not present (fresh run)
+    for col in SCORE_COLS:
+        if col not in df.columns:
+            df[col] = np.nan
 
-    # Group by UniProt only — gene is just passed for g2papi but scoring is UniProt-based.
-    # Using the first gene name encountered for each UniProt.
-    uniprot_to_gene = df.groupby('UniProt')['Gene'].first().to_dict()
+    # In rerun mode, only process rows where PFES is NaN
+    if rerun:
+        target_mask = df['PFES'].isna()
+        n_missing   = target_mask.sum()
+        if n_missing == 0:
+            print("No missing PFES values found. Nothing to do.")
+            return
+        print(f"Rerun mode: {n_missing:,} variants with missing PFES across "
+              f"{df.loc[target_mask, 'UniProt'].nunique()} proteins.")
+        work_df = df[target_mask].copy()
+    else:
+        work_df = df.copy()
+
+    enrichment_df, panther_map, gene_map = _load_resources()
+
+    # Resolve gene names from metadata, falling back to input gene name if not found
+    uniprot_to_gene_input = work_df.groupby('UniProt')['Gene'].first().to_dict()
+    uniprot_to_gene = {}
+    for uniprot, input_gene in uniprot_to_gene_input.items():
+        meta_gene = gene_map.get(uniprot, {}).get('HGNC_symbol', None)
+        if meta_gene and meta_gene != input_gene:
+            print(f"  Gene name updated: {input_gene} -> {meta_gene} ({uniprot})")
+            uniprot_to_gene[uniprot] = meta_gene
+        else:
+            uniprot_to_gene[uniprot] = input_gene
+
+    # Update Gene column in df with resolved names
+    df['Gene'] = df['UniProt'].map(uniprot_to_gene).fillna(df['Gene'])
+
     groups = [
         (uniprot_to_gene[uniprot], uniprot, grp, enrichment_df, panther_map)
-        for uniprot, grp in df.groupby('UniProt', sort=False)
+        for uniprot, grp in work_df.groupby('UniProt', sort=False)
     ]
     n_proteins = len(groups)
-    print(f"\nScoring {len(df):,} variants across {n_proteins} proteins "
-          f"using {n_workers} workers...\n")
+    print(f"\nScoring {len(work_df):,} variants across {n_proteins} proteins "
+          f"using {n_workers} worker(s)...\n")
 
-    # Collect results keyed by the original row indices of each group
     score_parts = []
+    errors      = []  # (gene, uniprot, error_message)
+
     with Pool(processes=n_workers) as pool:
-        for (_, _, grp, _, _), result in zip(
+        for (gene, uniprot, grp, _, _), (result, err, failed_idx) in zip(
             groups,
             tqdm(pool.imap(_process_one_protein, groups), total=n_proteins,
                  desc="Proteins", unit="protein")
         ):
             score_parts.append(result)
+            if err is not None:
+                errors.append((gene, uniprot, err))
 
-    # Reassemble in original row order using index alignment
-    scores_df = pd.concat(score_parts).reindex(df.index)
-    out = pd.concat([df[['Gene','UniProt','ResID','RefAA','AltAA']], scores_df], axis=1)
-    out.to_csv(output_tsv, sep='\t', index=False)
-    print(f"\nDone. {len(out):,} variants saved to: {output_tsv}")
+    # Merge new scores back into df by original row index
+    new_scores = pd.concat(score_parts).reindex(work_df.index)
+    df.loc[work_df.index, SCORE_COLS] = new_scores.values
+
+    df.to_csv(output_tsv, sep=_get_sep(output_tsv), index=False)
+
+    n_still_missing = df['PFES'].isna().sum()
+    print(f"\nDone. {len(work_df) - int(new_scores['PFES'].isna().sum()):,} variants scored successfully.")
+    if n_still_missing:
+        print(f"  {n_still_missing:,} variants still have missing PFES (failed proteins).")
+    print(f"Output saved to: {output_tsv}")
+
+    if errors:
+        n_protein_errors  = sum(1 for *_, fv in errors if fv is None)
+        n_variant_errors  = sum(len(fv) for *_, fv in errors if fv is not None)
+        print(f"\n{n_protein_errors} protein(s) and {n_variant_errors} individual variant(s) failed.")
+    _write_log(log_path, errors)
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
@@ -454,10 +508,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Compute PFES scores for a batch of missense variants.'
     )
-    parser.add_argument('input',   help='Input TSV (Gene, UniProt, ResID, RefAA, AltAA)')
-    parser.add_argument('output',  help='Output TSV path')
-    parser.add_argument('--workers', type=int, default=4,
-                        help=f'Parallel workers (default: 4, max: {cpu_count()})')
+    parser.add_argument('-i', '--input',   required=True,
+                        help='Input TSV or CSV (columns: Gene, UniProt, ResID, RefAA, AltAA). '
+                             'When --rerun is set, use the previous output file.')
+    parser.add_argument('-o', '--output',  required=True,
+                        help='Output TSV or CSV path (format inferred from extension).')
+    parser.add_argument('--rerun',  action='store_true',
+                        help='Only process rows where PFES is NaN (fill missing scores).')
+    parser.add_argument('--log',    default='pfes_errors.log',
+                        help='Path for error log (default: pfes_errors.log).')
+    parser.add_argument('--workers', type=int, default=1,
+                        help='Number of parallel workers (default: 1).')
     args = parser.parse_args()
 
-    run_pfes_batch(args.input, args.output, n_workers=args.workers)
+    run_pfes_batch(args.input, args.output,
+                   rerun=args.rerun, log_path=args.log, n_workers=args.workers)
