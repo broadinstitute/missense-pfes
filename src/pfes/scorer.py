@@ -504,7 +504,7 @@ def run_pfes_batch(input_tsv, output_tsv, rerun, log_path, n_workers):
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
         description='Compute PFES scores for a batch of missense variants.'
     )
@@ -523,3 +523,7 @@ if __name__ == '__main__':
 
     run_pfes_batch(args.input, args.output,
                    rerun=args.rerun, log_path=args.log, n_workers=args.workers)
+
+
+if __name__ == '__main__':
+    main()

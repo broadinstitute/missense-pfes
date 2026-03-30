@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "missense-pfes"
+version = "0.1.0"
+description = "Protein Feature Enrichment Score (PFES) for missense variant interpretation"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Seulki Kwon",   email = "skwon@broadinstitute.org" },
+    { name = "Jordan Safer" },
+    { name = "Sumaiya Iqbal", email = "sumaiya@broadinstitute.org" },
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas",
+    "requests",
+    "tqdm",
+    "g2papi",
+]
+
+[project.scripts]
+pfes = "pfes.scorer:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

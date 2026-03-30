@@ -1,109 +1,124 @@
 # Protein Feature Enrichment Score (PFES)
 
-> **Human Proteome-wide Mechanistic Interpretation of Missense Mutations through Structural and Functional Characterization** 
->
-> Seulki Kwon, Jordan Safer, Sumaiya Iqbal (Broad Institute of MIT and Harvard) 
+Protein Feature Enrichment Score (PFES) is an interpretable framework for missense variant interpretation. Rather than outputting a single pathogenicity probability, PFES quantifies the degree to which a variant's protein characteristics statistically resemble known pathogenic or benign variation, and decomposes that signal into six feature attribute categories: physicochemical properties, 3D structure, domain/region annotations, functional sites, post-translational modifications, and protein-protein interactions.
+
+This repository contains the data, analysis notebooks, and source code accompanying the manuscript: [*BioRxiv* 2025](url)
 
 ---
 
-## Overview
-
----
-
-## The PFES Framework
-
-### Core principle
-
-
-### Score computation
-
-PFES is computed as the sum of log odds ratios across protein features showing statistically significant enrichment in pathogenic versus benign/population variants:
-
-$$\text{PFES} = \sum_{i \in \text{significant}} \log(\text{OR}_i)$$
-
-Features enriched in pathogenic variants contribute positive values; features enriched in benign/population variants contribute negative values. Statistical enrichment is assessed using Fisher's exact tests with Benjamini-Hochberg FDR correction (threshold: p < 0.01), performed separately within each of 19 PANTHER protein functional classes to capture class-specific biological constraints.
-
-PFES spans **103 protein features** across six attribute categories:
-
-| Attribute | Examples |
-|---|---|
-| Physicochemical | Grantham distance, amino acid group |
-| Structure | Relative surface area, secondary structure, intramolecular interactions, AlphaFold pLDDT |
-| Domain/Region | Transmembrane regions, disordered regions, signal peptides |
-| Function | Active sites, binding sites, DNA-binding regions |
-| Modification | Phosphorylation, acetylation, methylation, lipidation sites |
-| PPI | Intermolecular hydrogen bonds, van der Waals contacts, disulfide bonds |
-
-### Variant partitioning
-
-Variants are partitioned into three categories based on statistical deviation from empirical PFES distributions of clinically annotated pathogenic and benign variants:
-
-- **PF-Enriched**: PFES significantly deviates from the benign/population distribution (p < 0.05), indicating a protein feature profile statistically consistent with pathogenic variation
-- **PF-Depleted**: PFES significantly deviates from the pathogenic distribution (p < 0.05), indicating a protein feature profile statistically consistent with benign variation
-- **PF-Neutral**: PFES is statistically consistent with both distributions, lacking a distinctive protein feature signal in either direction
-
-This is **mechanistic partitioning**, not binary pathogenicity classification. PF-neutral status should not be interpreted as evidence of benignity; it reflects that the variant lacks a distinctive protein feature profile detectable by this framework, and other lines of evidence remain essential.
-
----
-
-## Repository Contents
+## Repository Structure
 
 ```
-pfes/
-├── README.md
-├── enrichment/               # Scripts for PFES calculation
-│   ├── ...
-├── notebooks/
-│   └── pfes_query.ipynb      # Google Colab notebook for variant query
-├── data/
-│   └── ...                   # Precomputed PFES for all human proteome missense variants
-└── ...
+missense-pfes/
+├── data/                        # Pre-preocessed protein feature annotations for case/control datasets
+├── notebooks/                   # Analysis notebooks reproducing key figures and results
+├── results/                     # Output files - precomputed enrichment odds ratios and p-values, scored case and control datasets from batch pfes scorer, example output folder from PFES Colab
+├── src/pfes/                    # PFES batch scorer (installable as a CLI tool)
+└── glossary_protein_feature.md  # Definitions of all 103 protein features used in PFES
 ```
 
 ---
-
-## Quick Start: Query a Variant
+## Quick Start: Query a variant(s)
 
 The easiest way to use PFES is through our **Google Colab notebook**, which requires no local installation:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](TBU)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/broadinstitute/missense-pfes/blob/main/notebooks/G2P_PFES.ipynb)
 
-The notebook returns two outputs for any queried variant:
+The notebook returns two outputs for any queried variant(s):
 
-1. **Variant summary report** — overall PFES, PF category with statistical significance, and a breakdown of contributions across six attribute categories with plain-language interpretation of each enriched feature
-2. **Protein-wide mutational landscape** — a heatmap of PFES across all possible amino acid substitutions in the queried protein, decomposed by attribute category, showing where the variant of interest sits within the full substitution space
 
----
+1. **PFES report** — overall PFES, PFES partitioning category with statistical significance, and a breakdown of contributions across six attribute categories with plain-language interpretation of each enriched feature
 
-## Interpreting PFES Output
+1. **Protein-wide mutational landscape** — a heatmap of PFES across all possible amino acid substitutions in the queried protein, decomposed by attribute category, showing where the variant of interest sits within the full substitution space
 
-PFES is most informative when used alongside existing variant effect predictors rather than in isolation.
 
-- A variant that is **PF-Enriched** and receives high pathogenicity scores from tools like AlphaMissense or REVEL carries a richer, more interpretable evidence profile: the existing tools address whether the variant is likely pathogenic, while PFES addresses which specific protein characteristics are implicated.
-- A variant scored as likely pathogenic by other tools but **PF-Neutral** may involve a mechanism outside the scope of currently annotated protein features (e.g., gain-of-function through novel interactions, subtle allosteric effects), warranting closer investigation.
-- **PF-Depleted** status can support benign reclassification as one molecular line of evidence among others, particularly when corroborated by population frequency and clinical data.
 
-Because PFES is derived from protein feature annotations rather than trained on labeled variant data, it provides evidence that is genuinely orthogonal to frequency-based, segregation-based, and co-occurrence-based evidence lines used in ACMG/AMP classification workflows.
+## PFES Batch Scorer
 
----
+`src/pfes/scorer.py` computes PFES scores for a batch of missense variants from a TSV/CSV input file. It fetches protein feature data via the `g2papi` package and the enrichment table from this repository.
 
-## Limitations
+### Installation
 
-- PFES is entirely dependent on existing protein annotations (PDB, AlphaFold, UniProtKB, PhosphoSitePlus, PANTHER). Poorly characterized proteins will yield lower-resolution profiles.
-- The framework detects disruption of protein features statistically enriched at the proteome or protein class level. Variants acting through highly protein-specific mechanisms, subtle allosteric perturbations, or gain-of-function effects involving unannotated interactions will often be PF-Neutral.
-- Because PFES is primarily tied to protein features at the reference amino acid position, it is better suited to characterizing constraint landscapes across positions within a protein than distinguishing between individual substitutions at a single site.
-- Enrichment patterns are derived from ClinVar and gnomAD, which are not uniformly distributed across the proteome. Protein classes underrepresented in clinical databases may have less robust enrichment estimates.
+```bash
+git clone https://github.com/broadinstitute/missense-pfes.git
+cd missense-pfes
+pip install .
+```
 
----
+### Input format
+
+The input file should be a TSV or CSV with the following columns:
+
+| Column | Description |
+|--------|-------------|
+| `Gene` | HGNC gene symbol |
+| `UniProt` | UniProt accession |
+| `ResID` | Residue position |
+| `RefAA` | Reference amino acid (single-letter) |
+| `AltAA` | Alternate amino acid (single-letter) |
+
+### Usage
+
+```bash
+# Basic usage
+pfes -i variants.tsv -o scored_variants.tsv
+
+# Parallel processing
+pfes -i variants.tsv -o scored_variants.tsv --workers 4
+
+# Specify a custom error log path
+pfes -i variants.tsv -o scored_variants.tsv --log my_errors.log... 
+```
+
+Output retains the five input columns (`Gene`, `UniProt`, `ResID`, `RefAA`, `AltAA`) and appends seven score columns: `PFES`, `PFES_Physicochemical`, `PFES_Structure`, `PFES_Domain`, `PFES_Function`, `PFES_Modification`, and `PFES_PPI`.
+
+### Handling failures and missing scores
+
+Scoring requires fetching protein feature data from `g2papi` at runtime. Individual proteins or variants may fail due to missing data or network issues, in which case their PFES columns are left as `NaN` in the output. Details of each failure — including the gene, UniProt accession, residue, and error message — are written to a log file (`pfes_errors.log` by default).
+
+To retry only the failed variants without re-running the entire dataset, pass the previous output file as input with `--rerun`:
+
+```bash
+# Fill in missing scores from a previous run
+pfes -i scored_variants.tsv -o scored_variants.tsv --rerun
+```
+
+This fills in any rows where `PFES` is `NaN` and leaves successfully scored rows untouched.
+
+## Data
+Preprocessed protein feature annotations for the pathogenic (case) and control (benign + common population) variant datasets used in the paper. See `glossary_protein_feature.md` for definitions and sources of all 103 protein features.
+
+
+| File | Description |
+|------|-------------|
+| `data/case_annotation.tsv` | Protein feature annotations for 85,321 pathogenic variants |
+| `data/control_annotation.tsv` | Protein feature annotations for 130,832 control variants |
+
+
+## Notebooks
+
+| Notebook | Description |
+|----------|-------------|
+| `notebooks/enrichment_by_protein_class.ipynb` | Runs Fisher's exact test enrichment analysis within each PANTHER protein functional class and visualizes odds ratios. Generates `results/enrichment_OR_by_protein_class.csv`. |
+| `notebooks/PFES_empirical_stats.ipynb` | Computes empirical PFES distributions and derives partitioning thresholds (PF-Enriched/Neutral/Depleted) from the scored case and control datasets. |
+| `notebooks/G2P_PFES.ipynb` |  Colab notebook for querying PFES scores and reports for individual variants of a gene of interest. <a href="https://colab.research.google.com/github/broadinstitute/missense-pfes/blob/main/notebooks/G2P_PFES_colab.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a> |
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `results/case_pfes.tsv` | The scored (overall and per attribute) pathogenic variants, generated by the PFES batch scorer |
+| `results/control_pfes.tsv` | The scored (overall and per attribute) control variants, generated by the PFES batch scorer |
+| `results/pfes_pvalue_lookup.tsv` | Empirical p-value lookup table for variant partitioning, generated by `PFES_empirical_stats.ipynb`|
+| `results/enrichment_OR_by_protein_class.csv` | Odds ratios from Fisher's exact tests for all 103 protein features across 20 PANTHER protein functional classes, generated by `enrichment_by_protein_class.ipynb` |
+
 
 ## Citation
 
 If you use PFES in your work, please cite:
 
-> Kwon S, Safer J, Iqbal S. *Interpretable Protein Feature Enrichment Analysis for Human Proteome-wide Missense Variant Classification.* (2025) [journal TBU]
-
----
+> Human Proteome-wide Mechanistic Interpretation of Missense Mutations through Protein Feature Enrichment Score *[BioRxiv DOI later]*
 
 ## Contact
-
-For questions or feedback, please open a GitHub issue or contact [sumaiya@broadinstitute.org](mailto:sumaiya@broadinstitute.org).
+Seulki Kwon — skwon@broadinstitute.org  
+Broad Institute of MIT and Harvard
