@@ -1,3 +1,10 @@
-src-not-git
-src/__pycache__/
-results/pfes_output
+src-not-git/
+src/missense_pfes.egg-info/
+results/pfes_output/
+dist/
+build/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+

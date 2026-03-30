@@ -1,5 +1,8 @@
 # Protein Feature Enrichment Score (PFES)
 
+[![PyPI version](https://badge.fury.io/py/missense-pfes.svg)](https://pypi.org/project/missense-pfes/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/broadinstitute/missense-pfes/blob/main/notebooks/G2P_PFES.ipynb)
+
 Protein Feature Enrichment Score (PFES) is an interpretable framework for missense variant interpretation. Rather than outputting a single pathogenicity probability, PFES quantifies the degree to which a variant's protein characteristics statistically resemble known pathogenic or benign variation, and decomposes that signal into six feature attribute categories: physicochemical properties, 3D structure, domain/region annotations, functional sites, post-translational modifications, and protein-protein interactions.
 
 This repository contains the data, analysis notebooks, and source code accompanying the manuscript: [*BioRxiv* 2025](url)
@@ -20,9 +23,7 @@ missense-pfes/
 ---
 ## Quick Start: Query a variant(s)
 
-The easiest way to use PFES is through our **Google Colab notebook**, which requires no local installation:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/broadinstitute/missense-pfes/blob/main/notebooks/G2P_PFES.ipynb)
+The easiest way to use PFES is through our **Google Colab notebook**, which requires no local installation: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/broadinstitute/missense-pfes/blob/main/notebooks/G2P_PFES.ipynb)
 
 The notebook returns two outputs for any queried variant(s):
 
@@ -37,7 +38,11 @@ The notebook returns two outputs for any queried variant(s):
 `src/pfes/scorer.py` computes PFES scores for a batch of missense variants from a TSV/CSV input file. It fetches protein feature data via the `g2papi` package and the enrichment table from this repository.
 
 ### Installation
+```
+pip install missense-pfes
+```
 
+Or install from source: 
 ```bash
 git clone https://github.com/broadinstitute/missense-pfes.git
 cd missense-pfes
