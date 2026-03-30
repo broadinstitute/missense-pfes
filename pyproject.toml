@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "missense-pfes"
-version = "0.1.0"
+version = "0.1.1"
 description = "Protein Feature Enrichment Score (PFES) for missense variant interpretation"
 readme = "README.md"
 authors = [
