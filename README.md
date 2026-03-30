@@ -10,7 +10,7 @@ This repository contains the data, analysis notebooks, and source code accompany
 
 ```
 missense-pfes/
-├── data/                        # Pre-preocessed protein feature annotations for case/control datasets
+├── data/                        # Pre-Preprocessed protein feature annotations for case/control datasets
 ├── notebooks/                   # Analysis notebooks reproducing key figures and results
 ├── results/                     # Output files - precomputed enrichment odds ratios and p-values, scored case and control datasets from batch pfes scorer, example output folder from PFES Colab
 ├── src/pfes/                    # PFES batch scorer (installable as a CLI tool)
@@ -30,7 +30,6 @@ The notebook returns two outputs for any queried variant(s):
 1. **PFES report** — overall PFES, PFES partitioning category with statistical significance, and a breakdown of contributions across six attribute categories with plain-language interpretation of each enriched feature
 
 1. **Protein-wide mutational landscape** — a heatmap of PFES across all possible amino acid substitutions in the queried protein, decomposed by attribute category, showing where the variant of interest sits within the full substitution space
-
 
 
 ## PFES Batch Scorer
@@ -60,6 +59,24 @@ The input file should be a TSV or CSV with the following columns:
 ### Usage
 
 ```bash
+usage: pfes [-h] -i INPUT -o OUTPUT [--rerun] [--log LOG] [--workers WORKERS]
+
+Compute PFES scores for a batch of missense variants.
+
+options:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        Input TSV or CSV (columns: Gene, UniProt, ResID, RefAA, AltAA).
+                        When --rerun is set, use the previous output file.
+  -o OUTPUT, --output OUTPUT
+                        Output TSV or CSV path (format inferred from extension).
+  --rerun               Only process rows where PFES is NaN (fill missing scores).
+  --log LOG             Path for error log (default: pfes_errors.log).
+  --workers WORKERS     Number of parallel workers (default: 1).
+```
+
+
+```bash
 # Basic usage
 pfes -i variants.tsv -o scored_variants.tsv
 
@@ -71,6 +88,7 @@ pfes -i variants.tsv -o scored_variants.tsv --log my_errors.log...
 ```
 
 Output retains the five input columns (`Gene`, `UniProt`, `ResID`, `RefAA`, `AltAA`) and appends seven score columns: `PFES`, `PFES_Physicochemical`, `PFES_Structure`, `PFES_Domain`, `PFES_Function`, `PFES_Modification`, and `PFES_PPI`.
+
 
 ### Handling failures and missing scores
 

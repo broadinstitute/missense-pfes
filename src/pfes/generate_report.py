@@ -241,10 +241,11 @@ def _build_narrative_attribute(scores): #, gene, variant):
 
 
 # ── Main render function ───────────────────────────────────────────────────────
-
 def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
-                    interp_df, sig_df, insig_df, raw_df, fig, out_dir, template_path='.',
+                    interp_df, sig_df, insig_df, raw_df, fig, out_dir,
                     landscape_png_name=None):
+    import os
+    
     os.makedirs(out_dir, exist_ok=True)
 
     scores    = _build_scores(interp_df)
@@ -274,7 +275,8 @@ def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
         'landscape_html': f'{gene}_{variant}_landscape.html',
         'landscape_png':  png_name,
     }
-
+    
+    template_path = os.path.join(os.path.dirname(__file__), 'templates')
     env = Environment(loader=FileSystemLoader(template_path))
     env.filters['format_or'] = lambda v: f'{v:.2f}' if v < 10 else f'{v:.1f}'
     template = env.get_template('report_template.md.j2')
