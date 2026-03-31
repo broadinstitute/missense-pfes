@@ -44,7 +44,10 @@ For detailed methods and interpretation guidelines, please visit [the PFES GitHu
 ## 2. Protein Feature (PF) Attribution
 
 **PFES** is the sum of log odds ratios (OR) across protein features showing statistically significant enrichment in case versus control variants:
-$$\text{PFES} = \sum_{i \in \text{significant}} \log(\text{OR}_i)$$
+<p style="text-align:center; margin: 1em 0;">
+  PFES = &sum;<sub><i>i</i> &isin; significant</sub> log(OR<sub><i>i</i></sub>)
+</p>
+
 The following table summarizes the significant features contributing to the PFES, along with their enrichment direction, odds ratios, and corrected p-values. **Bold** indicate **statistically significant features** (corrected-p < 0.01).
 
 {% macro sig_cell(value, p) %}{% if p < 0.01 %}**{{ value }}**{% else %}{{ value }}{% endif %}{% endmacro %}
