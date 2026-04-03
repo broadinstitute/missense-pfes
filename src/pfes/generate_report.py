@@ -11,10 +11,13 @@ Depends on variables already in scope from compute_PFES.ipynb:
 """
 
 import os
+from tempfile import template
+from jaraco import context
 import numpy as np
 import pandas as pd
 import markdown
 from jinja2 import Environment, FileSystemLoader
+from requests_cache import datetime
 
 ATTR_ORDER = ['Physicochemical', 'Structure', 'Domain', 'Function', 'Modification', 'PPI']
 
@@ -280,7 +283,9 @@ def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
     env = Environment(loader=FileSystemLoader(template_path))
     env.filters['format_or'] = lambda v: f'{v:.2f}' if v < 10 else f'{v:.1f}'
     template = env.get_template('report_template.md.j2')
-    md_text  = template.render(**context)
+    from datetime import datetime
+    md_text = template.render(**context, generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    # md_text  = template.render(**context)
 
     # Save markdown
     # md_path = os.path.join(out_dir, f'{gene}_{variant}_report.md')
