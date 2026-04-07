@@ -108,20 +108,20 @@ FEATURE_COLS = (
     [f'SS:{s}'           for s in SS9_LABELS] +
     [f'RSA:{b}'          for b in RSA_LABELS] +
     [f'pLDDT:{b}'        for b in PLDDT_LABELS] +
-    ['PI:HB_intra','PI:SB_intra','PI:DS_intra','PI:NB_intra'] +
+    ['Intra:HB_intra','Intra:SB_intra','Intra:DS_intra','Intra:NB_intra'] +
     [f'Function:{f}'     for f in FUNCTION_FEATURES] +
     [f'Domain:{d}'       for d in DOMAIN_FEATURES] +
     [f'Modification:{m}' for m in PTM_FEATURES] +
-    ['PPI:HB_inter','PPI:SB_inter','PPI:DS_inter','PPI:NB_inter']
+    ['Inter:HB_inter','Inter:SB_inter','Inter:DS_inter','Inter:NB_inter']
 )
 
 ATTR_PREFIXES = {
     'Physicochemical': ['RefAA:','AAchange:','Grantham:'],
-    'Structure':       ['SS:','RSA:','pLDDT:','PI:'],
+    'Structure':       ['SS:','RSA:','pLDDT:','Intra:'],
     'Domain':          ['Domain:'],
     'Function':        ['Function:'],
     'Modification':    ['Modification:'],
-    'PPI':             ['PPI:'],
+    'PPI':             ['Inter:'],
 }
 
 FEAT_TO_ATTR = {}
@@ -201,10 +201,10 @@ def annotate_protein_features(pf):
         df[f'RefAA:{c}'] = ref_cls == c
 
     intra_map = {
-        'PI:HB_intra': ['Intra-chain Hydrogen bond (PDB)',          'Intra-chain Hydrogen bond (AlphaFold2)'],
-        'PI:SB_intra': ['Intra-chain Salt bridge (PDB)',            'Intra-chain Salt bridge (AlphaFold2)'],
-        'PI:DS_intra': ['Intra-chain Disulfide bond (PDB)',         'Intra-chain Disulfide bond (AlphaFold2)'],
-        'PI:NB_intra': ['Intra-chain Non-bonded interaction (PDB)', 'Intra-chain Non-bonded interaction (AlphaFold2)'],
+        'Intra:HB_intra': ['Intra-chain Hydrogen bond (PDB)',          'Intra-chain Hydrogen bond (AlphaFold2)'],
+        'Intra:SB_intra': ['Intra-chain Salt bridge (PDB)',            'Intra-chain Salt bridge (AlphaFold2)'],
+        'Intra:DS_intra': ['Intra-chain Disulfide bond (PDB)',         'Intra-chain Disulfide bond (AlphaFold2)'],
+        'Intra:NB_intra': ['Intra-chain Non-bonded interaction (PDB)', 'Intra-chain Non-bonded interaction (AlphaFold2)'],
     }
     for feat, cols in intra_map.items():
         avail = [c for c in cols if c in pf.columns]
@@ -213,17 +213,17 @@ def annotate_protein_features(pf):
 
     if 'Disulfide bond' in pf.columns:
         for i, val in enumerate(pf['Disulfide bond']):
-            cur_intra = '-' if not df.at[i, 'PI:DS_intra']  else 'annotated'
-            cur_inter = '-' if not df.at[i, 'PPI:DS_inter'] else 'annotated'
+            cur_intra = '-' if not df.at[i, 'Intra:DS_intra']  else 'annotated'
+            cur_inter = '-' if not df.at[i, 'Inter:DS_inter'] else 'annotated'
             new_intra, new_inter = _route_disulfide(val, cur_intra, cur_inter)
-            df.at[i, 'PI:DS_intra']  = new_intra != '-'
-            df.at[i, 'PPI:DS_inter'] = new_inter != '-'
+            df.at[i, 'Intra:DS_intra']  = new_intra != '-'
+            df.at[i, 'Inter:DS_inter'] = new_inter != '-'
 
     inter_map = {
-        'PPI:HB_inter': 'Inter-chain Hydrogen bond (PDB)',
-        'PPI:SB_inter': 'Inter-chain Salt bridge (PDB)',
-        'PPI:DS_inter': 'Inter-chain Disulfide bond (PDB)',
-        'PPI:NB_inter': 'Inter-chain Non-bonded interaction (PDB)',
+        'Inter:HB_inter': 'Inter-chain Hydrogen bond (PDB)',
+        'Inter:SB_inter': 'Inter-chain Salt bridge (PDB)',
+        'Inter:DS_inter': 'Inter-chain Disulfide bond (PDB)',
+        'Inter:NB_inter': 'Inter-chain Non-bonded interaction (PDB)',
     }
     for feat, col in inter_map.items():
         if col in pf.columns:

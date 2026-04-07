@@ -65,14 +65,14 @@ FEATURE_LABELS = {
     'SS:C': 'Secondary structure (C, loop/coil)',
     'SS:S': 'Secondary structure (S, bend)',
     'SS:T': 'Secondary structure (T, turn)',
-    'PI:HB_intra': 'Intra-protein hydrogen bond',
-    'PI:SB_intra': 'Intra-protein salt bridge',
-    'PI:DS_intra': 'Intra-protein disulfide bond',
-    'PI:NB_intra': 'Intra-protein non-bonded interaction',
-    'PPI:HB_inter': 'Inter-protein hydrogen bond',
-    'PPI:SB_inter': 'Inter-protein salt bridge',
-    'PPI:DS_inter': 'Inter-protein disulfide bond',
-    'PPI:NB_inter': 'Inter-protein non-bonded interaction',
+    'Intra:HB_intra': 'Intra-protein hydrogen bond',
+    'Intra:SB_intra': 'Intra-protein salt bridge',
+    'Intra:DS_intra': 'Intra-protein disulfide bond',
+    'Intra:NB_intra': 'Intra-protein non-bonded interaction',
+    'Inter:HB_inter': 'Inter-protein hydrogen bond',
+    'Inter:SB_inter': 'Inter-protein salt bridge',
+    'Inter:DS_inter': 'Inter-protein disulfide bond',
+    'Inter:NB_inter': 'Inter-protein non-bonded interaction',
 }
 
 def _feature_label(feat, raw_df, ref_aa, alt_aa):
@@ -116,14 +116,14 @@ def _feature_interpretation(feat, raw_df, ref_aa, alt_aa, var_pos, OR):
     if feat in FEAT_INTERPRETATION_RANGE:
         return FEAT_INTERPRETATION_RANGE[feat]
     if feat.startswith('SS:'):     return f'{ref_aa}{var_pos} adopts {FEATURE_LABELS.get(feat, feat)} conformation according to the 9-class DSSP algorithm'
-    if feat == 'PI:HB_intra':     return f'{ref_aa}{var_pos} participates in intra-protein hydrogen bonds'
-    if feat == 'PI:SB_intra':     return f'{ref_aa}{var_pos} participates in intra-protein salt bridge'
-    if feat == 'PI:DS_intra':     return f'{ref_aa}{var_pos} participates in intra-protein disulfide bond'
-    if feat == 'PI:NB_intra':     return f'{ref_aa}{var_pos} participates in intra-protein non-bonded contacts'
-    if feat == 'PPI:HB_inter':    return f'{ref_aa}{var_pos} participates in inter-protein hydrogen bond'
-    if feat == 'PPI:SB_inter':    return f'{ref_aa}{var_pos} participates in inter-protein salt bridge'
-    if feat == 'PPI:DS_inter':    return f'{ref_aa}{var_pos} participates in inter-protein disulfide bond'
-    if feat == 'PPI:NB_inter':    return f'{ref_aa}{var_pos} participates in inter-protein non-bonded contacts'
+    if feat == 'Intra:HB_intra':     return f'{ref_aa}{var_pos} participates in intra-protein hydrogen bonds'
+    if feat == 'Intra:SB_intra':     return f'{ref_aa}{var_pos} participates in intra-protein salt bridge'
+    if feat == 'Intra:DS_intra':     return f'{ref_aa}{var_pos} participates in intra-protein disulfide bond'
+    if feat == 'Intra:NB_intra':     return f'{ref_aa}{var_pos} participates in intra-protein non-bonded contacts'
+    if feat == 'Inter:HB_inter':    return f'{ref_aa}{var_pos} participates in inter-protein hydrogen bond'
+    if feat == 'Inter:SB_inter':    return f'{ref_aa}{var_pos} participates in inter-protein salt bridge'
+    if feat == 'Inter:DS_inter':    return f'{ref_aa}{var_pos} participates in inter-protein disulfide bond'
+    if feat == 'Inter:NB_inter':    return f'{ref_aa}{var_pos} participates in inter-protein non-bonded contacts'
     if feat.startswith('RefAA:'):
         if ref_aa == 'G':
             return f'{ref_aa}{var_pos} is a {feat.replace("RefAA:", "").lower()} amino acid (smallest amino acid, introducing high flexibility in structures)'
@@ -168,11 +168,11 @@ def _build_features(sig_df, raw_df, ref_aa, alt_aa, var_pos):
     features = {attr: [] for attr in ATTR_ORDER}
     attr_map = {
         'Physicochemical': ['RefAA:', 'AAchange:', 'Grantham:'],
-        'Structure':       ['SS:', 'RSA:', 'pLDDT:', 'PI:'],
+        'Structure':       ['SS:', 'RSA:', 'pLDDT:', 'Intra:'],
         'Domain':          ['Domain:'],
         'Function':        ['Function:'],
         'Modification':    ['Modification:'],
-        'PPI':             ['PPI:'],
+        'PPI':             ['Inter:'],
     }
     for _, row in sig_df.iterrows():
         feat = row['feature']
