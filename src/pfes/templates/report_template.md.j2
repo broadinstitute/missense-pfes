@@ -31,7 +31,8 @@ PFES quantifies the cumulative enrichment of protein features associated with th
 | Attribute | Score | *p*<sub>case</sub><sup>†</sup> | *p*<sub>control</sub><sup>†</sup> |
 |---|---|---|---|
 {% for attr in attr_order -%}
-| PFES<sub>{{ attr }}</sub> | {% if scores[attr].score is none or scores[attr].score != scores[attr].score %}N/A (no significant feature){% else %}{{ "%.3f" | format(scores[attr].score) }}{% endif %} | {% if scores[attr].p_case is not none %}{% set p = scores[attr].p_case %}{% set p = 2.2e-308 if p == 0.0 else p %}{% if p < 0.05 %}**{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}**{% else %}{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}{% endif %}{% else %}—{% endif %} | {% if scores[attr].p_control is not none %}{% set p = scores[attr].p_control %}{% set p = 2.2e-308 if p == 0.0 else p %}{% if p < 0.05 %}**{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}**{% else %}{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}{% endif %}{% else %}—{% endif %} |{% endfor %}
+| PFES<sub>{{ attr }}</sub> | {% if scores[attr].score is none or scores[attr].score != scores[attr].score %}N/A (no significant feature){% else %}{{ "%.3f" | format(scores[attr].score) }}{% endif %} | {% if scores[attr].p_case is not none %}{% set p = scores[attr].p_case %}{% set p = 2.2e-308 if p == 0.0 else p %}{% if p < 0.05 %}**{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}**{% else %}{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}{% endif %}{% else %}—{% endif %} | {% if scores[attr].p_control is not none %}{% set p = scores[attr].p_control %}{% set p = 2.2e-308 if p == 0.0 else p %}{% if p < 0.05 %}**{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}**{% else %}{{ ("%.2f" if p > 0.01 else "%.2e") | format(p) }}{% endif %}{% else %}—{% endif %} |
+{% endfor %}
 
 {{ narrative.attributes }}
 

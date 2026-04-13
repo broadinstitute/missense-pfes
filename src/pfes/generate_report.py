@@ -278,7 +278,7 @@ def generate_report(gene, variant, protein_class, var_pos, ref_aa, alt_aa,
         'landscape_html': f'{gene}_{variant}_landscape.html',
         'landscape_png':  png_name,
     }
-    
+
     template_path = os.path.join(os.path.dirname(__file__), 'templates')
     env = Environment(loader=FileSystemLoader(template_path))
     env.filters['format_or'] = lambda v: f'{v:.2f}' if v < 10 else f'{v:.1f}'
