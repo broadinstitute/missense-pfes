@@ -13,11 +13,11 @@ This repository contains the data, analysis notebooks, and source code accompany
 
 ```
 missense-pfes/
-├── data/                        # Pre-Preprocessed protein feature annotations for case/control datasets
+├── data/                        # Pre-preprocessed protein feature annotations for case/control datasets
 ├── notebooks/                   # Analysis notebooks reproducing key figures and results
 ├── results/                     # Output files - precomputed enrichment odds ratios and p-values, scored case and control datasets from batch pfes scorer, example output folder from PFES Colab
 ├── src/pfes/                    # PFES batch scorer (installable as a CLI tool)
-└── glossary_protein_feature.md  # Definitions of all 103 protein features used in PFES
+└── glossary_protein_feature.md  # Definitions of all 103 protein features used for PFES computation
 ```
 
 ---
