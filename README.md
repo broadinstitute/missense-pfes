@@ -14,7 +14,7 @@ This repository contains the data, analysis notebooks, and source code accompany
 ```
 missense-pfes/
 ├── data/                        # Pre-preprocessed protein feature annotations for case/control datasets
-├── notebooks/                   # Analysis notebooks reproducing key figures and results
+├── notebooks/                   # Analysis notebooks reproducing key figures and results, and live PFES computation (Colab)
 ├── results/                     # Output files - precomputed enrichment odds ratios and p-values, scored case and control datasets from batch pfes scorer, example output folder from PFES Colab
 ├── src/pfes/                    # PFES batch scorer (installable as a CLI tool)
 └── glossary_protein_feature.md  # Definitions of all 103 protein features used for PFES computation
@@ -114,7 +114,7 @@ Preprocessed protein feature annotations for the pathogenic (case) and control (
 
 | File | Description |
 |------|-------------|
-| `data/case_annotation.tsv` | Protein feature annotations for 85,321 pathogenic variants |
+| `data/case_annotation.tsv` | Protein feature annotations for 39,695 pathogenic variants |
 | `data/control_annotation.tsv` | Protein feature annotations for 130,832 control variants |
 
 
@@ -122,8 +122,8 @@ Preprocessed protein feature annotations for the pathogenic (case) and control (
 
 | Notebook | Description |
 |----------|-------------|
-| `notebooks/enrichment_by_protein_class.ipynb` | Runs Fisher's exact test enrichment analysis within each PANTHER protein functional class and visualizes odds ratios. Generates `results/enrichment_OR_by_protein_class.csv`. |
-| `notebooks/PFES_empirical_stats.ipynb` | Computes empirical PFES distributions and derives partitioning thresholds (PF-Enriched/Neutral/Depleted) from the scored case and control datasets. |
+| `notebooks/compute_enrichment.ipynb` | Runs Fisher's exact test enrichment analysis within each PANTHER protein functional class and visualizes odds ratios. Generates `results/enrichment_OR_by_protein_class.csv`. |
+| `notebooks/compute_partitioning_threshold.ipynb` | Computes empirical PFES distributions and derives partitioning thresholds (PF-Enriched/Neutral/Depleted) from the scored case and control datasets. |
 | `notebooks/G2P_PFES.ipynb` |  Colab notebook for querying PFES scores and reports for individual variants of a gene of interest. <a href="https://colab.research.google.com/github/broadinstitute/missense-pfes/blob/main/notebooks/G2P_PFES_colab.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a> |
 
 ## Results
