@@ -5,7 +5,7 @@
 
 Protein Feature Enrichment Score (PFES) is an interpretable framework for missense variant interpretation. Rather than outputting a single pathogenicity probability, PFES quantifies the degree to which a variant's protein characteristics statistically resemble known pathogenic or benign variation, and decomposes that signal into six feature attribute categories: physicochemical properties, 3D structure, domain/region annotations, functional sites, post-translational modifications, and protein-protein interactions.
 
-This repository contains the data, analysis notebooks, and source code accompanying the manuscript: [*BioRxiv*](url)
+This repository contains the data, analysis notebooks, and source code accompanying the manuscript: [*BioRxiv*](https://www.biorxiv.org/content/10.64898/2026.05.26.726248v1)
 
 ---
 
