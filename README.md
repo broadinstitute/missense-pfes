@@ -34,6 +34,7 @@ The notebook returns two outputs for any queried variant(s):
 
 
 ## PFES Batch Scorer
+[![PyPI version](https://badge.fury.io/py/missense-pfes.svg)](https://pypi.org/project/missense-pfes/)
 
 `src/pfes/scorer.py` computes PFES scores for a batch of missense variants from a TSV/CSV input file. It fetches protein feature data via the `g2papi` package and the enrichment table from this repository.
 
