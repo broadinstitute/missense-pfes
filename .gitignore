@@ -8,3 +8,7 @@ __pycache__/
 .ipynb_checkpoints/
 
 
+
+# versioned snapshots of data/ (local only)
+data/v1_July2025/
+data/v2_Sep2026/
