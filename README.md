@@ -1,6 +1,6 @@
 # Protein Feature Enrichment Score (PFES)
 
-[![PyPI version](https://badge.fury.io/py/missense-pfes.svg)](https://pypi.org/project/missense-pfes/)
+[![PyPI version](https://img.shields.io/pypi/v/missense-pfes)](https://pypi.org/project/missense-pfes/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/broadinstitute/missense-pfes/blob/main/notebooks/G2P_PFES.ipynb)
 
 Protein Feature Enrichment Score (PFES) is an interpretable framework for missense variant interpretation. Rather than outputting a single pathogenicity probability, PFES quantifies the degree to which a variant's protein characteristics statistically resemble known pathogenic or benign variation, and decomposes that signal into six feature attribute categories: physicochemical properties, 3D structure, domain/region annotations, functional sites, post-translational modifications, and protein-protein interactions.
@@ -34,7 +34,7 @@ The notebook returns two outputs for any queried variant(s):
 
 
 ## PFES Batch Scorer
-[![PyPI version](https://badge.fury.io/py/missense-pfes.svg)](https://pypi.org/project/missense-pfes/)
+[![PyPI version](https://img.shields.io/pypi/v/missense-pfes)](https://pypi.org/project/missense-pfes/)
 
 `src/pfes/scorer.py` computes PFES scores for a batch of missense variants from a TSV/CSV input file. It fetches protein feature data via the `g2papi` package and the enrichment table from this repository.
 
