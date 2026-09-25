@@ -83,11 +83,16 @@ MAX_ASA = {
     'P':159.0,'S':155.0,'T':172.0,'W':285.0,'Y':263.0,'V':174.0,
 }
 
+# Feature definitions shared by scoring (here) and OR estimation (notebooks/compute_enrichment.ipynb).
+# All bins are lower-edge inclusive [a, b): RSA 0.05 -> Buried, pLDDT 90 -> Very high, Grantham 50 -> Moderate.
+# SS9 '-' (no DSSP assignment) carries no SS feature and is excluded from the SS9 enrichment denominators.
 SS9_LABELS    = ['B','E','G','H','I','P','C','S','T']
 RSA_BINS      = [0, 0.05, 0.25, 0.50, 0.75, np.inf]
 RSA_LABELS    = ['Core','Buried','Medium-buried','Medium-exposed','Exposed']
 PLDDT_BINS    = [0, 50, 70, 90, np.inf]
 PLDDT_LABELS  = ['Very low','Low','High','Very high']
+DIST_BINS     = [0, 50, 100, 150, np.inf]
+DIST_LABELS   = ['Mild','Moderate','Substantial','Severe']
 PCHEM_CLASSES = ['Aliphatic','Aromatic','Polar/Neutral','Positively-Charged','Negatively-Charged','Special']
 
 FUNCTION_FEATURES = ['Active site','Binding site','Site','DNA binding','Zinc finger']
@@ -128,7 +133,7 @@ FEAT_TO_ATTR = {}
 for attr, prefixes in ATTR_PREFIXES.items():
     for feat in FEATURE_COLS + [
         f'AAchange:{r}>{a}' for r in PCHEM_CLASSES for a in PCHEM_CLASSES
-    ] + ['Grantham:Mild','Grantham:Moderate','Grantham:Substantial','Grantham:Severe']:
+    ] + [f'Grantham:{d}' for d in DIST_LABELS]:
         if any(feat.startswith(p) for p in prefixes):
             FEAT_TO_ATTR[feat] = attr
 
@@ -138,6 +143,10 @@ SCORE_COLS  = ['PFES','PFES_Physicochemical','PFES_Structure',
 
 
 # ── Protein feature annotation ─────────────────────────────────────────────────
+
+def bin_values(values, bins, labels):
+    """Bin numeric values with the [a, b) convention used for every binned feature."""
+    return pd.cut(values, bins=bins, labels=labels, right=False)
 
 def _is_annotated(val):
     return str(val).strip() != '-'
@@ -185,14 +194,14 @@ def annotate_protein_features(pf):
     if asa_col in pf.columns:
         asa  = pd.to_numeric(pf[asa_col], errors='coerce')
         rsa  = (asa / pf['AA'].map(MAX_ASA)).clip(0, 1)
-        bins = pd.cut(rsa, bins=RSA_BINS, labels=RSA_LABELS, right=False)
+        bins = bin_values(rsa, RSA_BINS, RSA_LABELS)
         for b in RSA_LABELS:
             df[f'RSA:{b}'] = bins == b
 
     plddt_col = 'AlphaFold confidence (pLDDT)'
     if plddt_col in pf.columns:
         plddt = pd.to_numeric(pf[plddt_col], errors='coerce')
-        bins  = pd.cut(plddt, bins=PLDDT_BINS, labels=PLDDT_LABELS, right=False)
+        bins  = bin_values(plddt, PLDDT_BINS, PLDDT_LABELS)
         for b in PLDDT_LABELS:
             df[f'pLDDT:{b}'] = bins == b
 
@@ -277,7 +286,6 @@ def _score_protein_variants(encoded, variants_df, log_ors):
 
     results    = []
     failed_idx = []  # row indices where ResID was not found
-    dist_labels = ['Mild','Moderate','Substantial','Severe']
 
     for idx, vrow in variants_df.iterrows():
         res_id, ref_aa, alt_aa = int(vrow['ResID']), vrow['RefAA'], vrow['AltAA']
@@ -299,8 +307,9 @@ def _score_protein_variants(encoded, variants_df, log_ors):
 
         dist = DISTANCE_MATRIX.get(ref_aa, {}).get(alt_aa, np.nan)
         if not np.isnan(dist):
-            idx = np.searchsorted([50, 100, 150], dist)
-            feat = f'Grantham:{dist_labels[idx]}'
+            # side='right' gives the [a, b) bins of DIST_BINS: 50 -> Moderate
+            idx = np.searchsorted(DIST_BINS[1:-1], dist, side='right')
+            feat = f'Grantham:{DIST_LABELS[idx]}'
             if feat in variant_feats:
                 scores['Physicochemical'] = scores.get('Physicochemical', 0.0) + variant_feats[feat]
 

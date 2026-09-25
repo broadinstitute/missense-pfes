@@ -98,19 +98,19 @@ def _feature_label(feat, raw_df, ref_aa, alt_aa):
     return feat
 
 FEAT_INTERPRETATION_RANGE = {
-    'RSA:Core'              :       "Residue is at the protein core (RSA ≤ 0.05)",
-    'RSA:Buried'            :       "Residue is buried (0.05 < RSA ≤ 0.15)",
-    'RSA:Medium-buried'     :  "Residue is medium-buried (0.15 < RSA ≤ 0.25)",
-    'RSA:Medium-exposed'    :      "Residue is medium-exposed (0.25 < RSA ≤ 0.50)",
-    'RSA:Exposed'           :      "Residue is exposed (RSA > 0.50)",
+    'RSA:Core'              :       "Residue is at the protein core (RSA < 0.05)",
+    'RSA:Buried'            :       "Residue is buried (0.05 ≤ RSA < 0.25)",
+    'RSA:Medium-buried'     :  "Residue is medium-buried (0.25 ≤ RSA < 0.50)",
+    'RSA:Medium-exposed'    :      "Residue is medium-exposed (0.50 ≤ RSA < 0.75)",
+    'RSA:Exposed'           :      "Residue is exposed (RSA ≥ 0.75)",
     'pLDDT:Very low'        :   "Very low AlphaFold2 confidence score (pLDDT < 50)",
-    'pLDDT:Low'             :        "Low AlphaFold2 confidence score (pLDDT 50–70)",
-    'pLDDT:High'            :       "High AlphaFold2 confidence score (pLDDT 70–90)",
-    'pLDDT:Very high'       :  "Very high AlphaFold2 confidence score (pLDDT > 90)",
-    'Grantham:Mild'         : "Mild physicochemical property shift (Grantham distance 0–50)",
-    'Grantham:Moderate'     : "Moderate physicochemical property shift (Grantham distance 51–100)",
-    'Grantham:Substantial'  : "Substantial physicochemical property shift (Grantham distance 101–150)",
-    'Grantham:Severe'       : "Severe physicochemical property shift (Grantham distance >150)"
+    'pLDDT:Low'             :        "Low AlphaFold2 confidence score (50 ≤ pLDDT < 70)",
+    'pLDDT:High'            :       "High AlphaFold2 confidence score (70 ≤ pLDDT < 90)",
+    'pLDDT:Very high'       :  "Very high AlphaFold2 confidence score (pLDDT ≥ 90)",
+    'Grantham:Mild'         : "Mild physicochemical property shift (Grantham distance < 50)",
+    'Grantham:Moderate'     : "Moderate physicochemical property shift (50 ≤ Grantham distance < 100)",
+    'Grantham:Substantial'  : "Substantial physicochemical property shift (100 ≤ Grantham distance < 150)",
+    'Grantham:Severe'       : "Severe physicochemical property shift (Grantham distance ≥ 150)"
 }
 def _feature_interpretation(feat, raw_df, ref_aa, alt_aa, var_pos, OR):
     if feat in FEAT_INTERPRETATION_RANGE:

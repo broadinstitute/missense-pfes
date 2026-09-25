@@ -111,6 +111,8 @@ The classification of local secondary structure elements in a protein, as define
 * **S** – Bend
 * **C** – Coil/undefined
 
+Residues without a DSSP assignment (`-`) carry no secondary-structure feature and are excluded from the secondary-structure enrichment denominators.
+
 ### **Relative Solvent Accessibility (RSA)**
 
 The **RSA** quantifies how exposed an amino acid residue is to solvent within a given structure. DSSP algorithm calculates the **absolute solvent accessible surface area** (ASA, measured in Å) of a residue *X* for a given protein structure. RSA is defined as ASA normalized against its maximum possible exposure, which is the ASA of the residue X in a reference tripeptide (Gly–*X*–Gly) configuration. These reference values were collected from the literature (*M. Z. Tien et al.*, *PLoS ONE* 8, e80635 (2013)).
@@ -127,10 +129,12 @@ Based on RSA values, residues were categorized into five exposure levels:
 
 The **predicted Local Distance Difference Test (pLDDT)** is a per-residue confidence score from AlphaFold2, ranging from 0 to 100. It estimates the local accuracy of predicted structures without requiring alignment to experimental data. Regions with low pLDDT may reflect intrinsic disorder or insufficient evolutionary constraints.
 
-* **Very high (pLDDT > 90)** – High confidence in backbone and side chains.
-* **Confident (70 < pLDDT ≤ 90)** – Reliable backbone; side chains may be inaccurate.
-* **Low (50 < pLDDT ≤ 70)** – Uncertain local structure.
-* **Very low (pLDDT ≤ 50)** – Likely disordered or flexible regions.
+* **Very high (pLDDT ≥ 90)** – High confidence in backbone and side chains.
+* **High (70 ≤ pLDDT < 90)** – Reliable backbone; side chains may be inaccurate.
+* **Low (50 ≤ pLDDT < 70)** – Uncertain local structure.
+* **Very low (pLDDT < 50)** – Likely disordered or flexible regions.
+
+> **Bin convention.** Every binned feature (RSA, pLDDT, Grantham's distance) uses lower-edge-inclusive bins `[a, b)`, defined once in `src/pfes/scorer.py` (`RSA_BINS`, `PLDDT_BINS`, `DIST_BINS`) and shared by the scorer and `notebooks/compute_enrichment.ipynb`.
 
 ### **Intramolecular Interactions**
 
